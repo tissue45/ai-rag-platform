@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ai-rag-postgres
+    environment:
+      POSTGRES_DB: airag
+      POSTGRES_USER: airag
+      POSTGRES_PASSWORD: airag
+    ports:
+      - "5432:5432"
+    volumes:
+      - airag_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airag -d airag"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  airag_postgres_data:
