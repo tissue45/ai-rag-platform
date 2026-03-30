@@ -12,7 +12,7 @@ import { useAuthStore } from './stores/auth'
 const pinia = createPinia()
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', redirect: '/documents' },
     { path: '/login', component: LoginView, meta: { public: true } },
