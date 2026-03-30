@@ -40,7 +40,12 @@ jobs:
         working-directory: frontend
         env:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-        run: npm run build
+        run: |
+          if [ -z "${VITE_API_BASE_URL:-}" ]; then
+            echo '::error::Actions 시크릿 VITE_API_BASE_URL이 비어 있습니다. Repository secrets에 ALB URL(예: http://xxx.elb.amazonaws.com, /api 제외)을 추가하세요.'
+            exit 1
+          fi
+          npm run build
 
       - name: SPA fallback for GitHub Pages
         run: cp frontend/dist/index.html frontend/dist/404.html
