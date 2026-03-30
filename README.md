@@ -97,3 +97,11 @@ npm run dev -- --host
 
 - 상세 PR 체크리스트: `진행순서.md`
 
+## GitHub Pages 배포
+
+- 워크플로 파일: `.github/workflows/deploy-pages.yml`
+- 트리거: `main` 브랜치 push 시 자동 배포
+- 예상 URL: `https://tissue45.github.io/ai-rag-platform/`
+
+초기 1회는 GitHub 저장소 설정에서 `Settings > Pages > Source`를 `GitHub Actions`로 설정해야 합니다.
+
