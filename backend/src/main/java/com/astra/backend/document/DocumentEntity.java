@@ -33,6 +33,16 @@ public class DocumentEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ingest_status", nullable = false, length = 32)
+    private DocumentIngestStatus ingestStatus;
+
+    @Column(name = "ingest_error", columnDefinition = "TEXT")
+    private String ingestError;
+
+    @Column(name = "ingested_at")
+    private Instant ingestedAt;
+
     @PrePersist
     void prePersist() {
         Instant now = Instant.now();
@@ -83,6 +93,34 @@ public class DocumentEntity {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public DocumentIngestStatus getIngestStatus() {
+        return ingestStatus;
+    }
+
+    public void setIngestStatus(DocumentIngestStatus ingestStatus) {
+        this.ingestStatus = ingestStatus;
+    }
+
+    public String getIngestError() {
+        return ingestError;
+    }
+
+    public void setIngestError(String ingestError) {
+        this.ingestError = ingestError;
+    }
+
+    public Instant getIngestedAt() {
+        return ingestedAt;
+    }
+
+    public void setIngestedAt(Instant ingestedAt) {
+        this.ingestedAt = ingestedAt;
     }
 }
 

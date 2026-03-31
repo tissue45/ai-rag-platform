@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { h, onMounted, reactive, ref } from 'vue'
 import {
   NAlert,
   NButton,
@@ -32,6 +32,7 @@ type DocumentDetail = {
 
 const notify = useNotify()
 const creating = ref(false)
+const deletingId = ref<number | null>(null)
 const loadingList = ref(false)
 const loadingDetail = ref(false)
 const error = ref<string | null>(null)
@@ -48,6 +49,27 @@ const columns: DataTableColumns<DocumentSummary> = [
   { title: '제목', key: 'title' },
   { title: '타입', key: 'sourceType', width: 120 },
   { title: '생성일', key: 'createdAt', width: 220 },
+  {
+    title: '액션',
+    key: 'actions',
+    width: 120,
+    render: (row) =>
+      h(
+        NButton,
+        {
+          size: 'small',
+          type: 'error',
+          tertiary: true,
+          style: 'width: 56px; min-width: 56px; height: 28px;',
+          disabled: deletingId.value !== null,
+          onClick: (e: MouseEvent) => {
+            e.stopPropagation()
+            void deleteDocument(row.id)
+          },
+        },
+        { default: () => '삭제' },
+      ),
+  },
 ]
 
 async function fetchList() {
@@ -99,6 +121,26 @@ async function createDocument() {
     notify.error('문서 생성 실패')
   } finally {
     creating.value = false
+  }
+}
+
+async function deleteDocument(id: number) {
+  if (!window.confirm('이 문서를 삭제하시겠습니까?')) return
+  deletingId.value = id
+  error.value = null
+  try {
+    await http.delete(`/api/documents/${id}`)
+    notify.success('문서 삭제 완료')
+    if (selected.value?.id === id) {
+      selected.value = null
+    }
+    await fetchList()
+  } catch (e: any) {
+    const message = e?.response?.data?.message || e?.message || '문서 삭제 실패'
+    error.value = String(message)
+    notify.error('문서 삭제 실패')
+  } finally {
+    deletingId.value = null
   }
 }
 
