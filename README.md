@@ -4,9 +4,9 @@
 
 ## 현재 진행 상태
 
-- 완료: `PR-00`, `PR-01`, `PR-01.1`, `PR-02`, `PR-03`, `PR-04`, `PR-05`
+- 완료: `PR-00`, `PR-01`, `PR-01.1`, `PR-02`, `PR-03`, `PR-04`, `PR-05`, `PR-06`, `PR-07`, `PR-08`
 - 배포 관련: `PR-09`, `PR-10` 일부 선행 진행(백엔드 Docker/ECR/ECS/RDS/ALB, 프론트 GitHub Pages)
-- 다음 핵심 개발: `PR-06` (청킹 + 임베딩 저장)
+- 다음 핵심 개발: `PR-09` (배포 포장)
 
 ## AI 모델/프로바이더 결정
 
@@ -15,6 +15,19 @@
   - 임베딩: `text-embedding-3-small`
   - 답변 생성: `gpt-4o-mini`
 - 추후 필요 시 Provider 추상화로 `Azure OpenAI` 전환 가능하게 유지합니다.
+
+## OpenAI 키 연결
+
+- 키가 없으면 fallback 답변으로 동작하며, 실제 LLM 품질 답변이 나오지 않습니다.
+- 백엔드 실행 전에 환경변수를 설정하세요.
+
+```powershell
+$env:APP_OPENAI_API_KEY="sk-..."
+$env:APP_OPENAI_CHAT_MODEL="gpt-4o-mini"
+$env:APP_OPENAI_EMBEDDING_MODEL="text-embedding-3-small"
+```
+
+- 설정 후 `backend`를 재실행하면 `POST /api/rag/ask`가 OpenAI 호출로 동작합니다.
 
 ## 현재 구현된 기능
 
@@ -29,6 +42,8 @@
   - 내 문서 목록 조회
   - 문서 상세 조회
   - 문서 삭제
+  - 문서 멀티 선택 + 질의 입력
+  - 답변 + sources(근거) 표시
 - Naive UI 기반 기본 레이아웃(`AppShell`)
 
 ### 백엔드
@@ -46,6 +61,10 @@
   - `GET /api/documents/{id}` (내 문서 상세)
   - `DELETE /api/documents/{id}` (내 문서 삭제)
   - 사용자 소유 문서 격리(본인 문서만 조회 가능)
+- RAG API
+  - `POST /api/rag/ask` (`question`, `documentIds[]`)
+  - 선택 문서 소유권 검증
+  - 선택 문서 범위 벡터 검색 Top-K + 답변 + sources 반환
 
 ### DB/Flyway
 
@@ -91,15 +110,6 @@ npm run dev -- --host
 
 아래는 `진행순서.md` 기준의 남은 PR입니다.
 
-- `PR-06`: 청킹 + 임베딩 저장(인제스트 1차)
-  - `document_chunks`, `chunk_embeddings` 테이블
-  - 청킹 로직 + 임베딩 생성
-  - 인제스트 상태 관리
-- `PR-07`: 단발 질의(RAG) + 선택 문서 멀티
-  - `question + documentIds[]`
-  - 선택 문서 범위 벡터 검색 + 답변 + sources
-- `PR-08`: 프론트 문서 멀티 선택 + 질의 화면
-  - 문서 선택/질문/답변/근거 표시
 - `PR-09`: 배포 포장(Dockerfile)
 - `PR-10`: AWS 배포(ECS Fargate + RDS + S3)
 - `PR-11`: 비동기 인제스트(SQS + 워커)
