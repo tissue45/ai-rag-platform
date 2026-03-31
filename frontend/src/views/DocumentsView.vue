@@ -19,6 +19,7 @@ type DocumentSummary = {
   id: number
   title: string
   sourceType: string
+  ingestStatus: string
   createdAt: string
 }
 
@@ -26,18 +27,39 @@ type DocumentDetail = {
   id: number
   title: string
   sourceType: string
+  ingestStatus: string
+  ingestError: string | null
   content: string
   createdAt: string
+}
+
+type RagSource = {
+  documentId: number
+  documentTitle: string
+  chunkId: number
+  chunkIndex: number
+  content: string
+  score: number
+}
+
+type RagAskResponse = {
+  answer: string
+  sources: RagSource[]
 }
 
 const notify = useNotify()
 const creating = ref(false)
 const deletingId = ref<number | null>(null)
+const asking = ref(false)
 const loadingList = ref(false)
 const loadingDetail = ref(false)
 const error = ref<string | null>(null)
 const docs = ref<DocumentSummary[]>([])
 const selected = ref<DocumentDetail | null>(null)
+const selectedDocIds = ref<number[]>([])
+const question = ref('')
+const ragAnswer = ref('')
+const ragSources = ref<RagSource[]>([])
 
 const form = reactive({
   title: '',
@@ -45,9 +67,11 @@ const form = reactive({
 })
 
 const columns: DataTableColumns<DocumentSummary> = [
+  { type: 'selection' },
   { title: 'ID', key: 'id', width: 80 },
   { title: '제목', key: 'title' },
   { title: '타입', key: 'sourceType', width: 120 },
+  { title: '인제스트', key: 'ingestStatus', width: 120 },
   { title: '생성일', key: 'createdAt', width: 220 },
   {
     title: '액션',
@@ -78,6 +102,7 @@ async function fetchList() {
   try {
     const { data } = await http.get<DocumentSummary[]>('/api/documents')
     docs.value = data
+    selectedDocIds.value = selectedDocIds.value.filter((id) => data.some((d) => d.id === id))
   } catch (e: any) {
     const message = e?.response?.data?.message || e?.message || '문서 목록 조회 실패'
     error.value = String(message)
@@ -115,6 +140,7 @@ async function createDocument() {
     form.content = ''
     await fetchList()
     selected.value = data
+    selectedDocIds.value = Array.from(new Set([...selectedDocIds.value, data.id]))
   } catch (e: any) {
     const message = e?.response?.data?.message || e?.message || '문서 생성 실패'
     error.value = String(message)
@@ -134,6 +160,7 @@ async function deleteDocument(id: number) {
     if (selected.value?.id === id) {
       selected.value = null
     }
+    selectedDocIds.value = selectedDocIds.value.filter((docId) => docId !== id)
     await fetchList()
   } catch (e: any) {
     const message = e?.response?.data?.message || e?.message || '문서 삭제 실패'
@@ -141,6 +168,37 @@ async function deleteDocument(id: number) {
     notify.error('문서 삭제 실패')
   } finally {
     deletingId.value = null
+  }
+}
+
+async function askRag() {
+  const q = question.value.trim()
+  if (!q) {
+    notify.error('질문을 입력해 주세요.')
+    return
+  }
+  if (selectedDocIds.value.length === 0) {
+    notify.error('질의 대상 문서를 1개 이상 선택해 주세요.')
+    return
+  }
+
+  asking.value = true
+  error.value = null
+  try {
+    const payload = {
+      question: q,
+      documentIds: selectedDocIds.value,
+    }
+    const { data } = await http.post<RagAskResponse>('/api/rag/ask', payload)
+    ragAnswer.value = data.answer
+    ragSources.value = data.sources
+    notify.success('질의 완료')
+  } catch (e: any) {
+    const message = e?.response?.data?.message || e?.message || '질의 실패'
+    error.value = String(message)
+    notify.error('질의 실패')
+  } finally {
+    asking.value = false
   }
 }
 
@@ -165,6 +223,8 @@ onMounted(fetchList)
       <NDataTable
         :columns="columns"
         :data="docs"
+        :row-key="(row) => row.id"
+        v-model:checked-row-keys="selectedDocIds"
         :loading="loadingList"
         :single-line="false"
         :row-props="
@@ -176,6 +236,34 @@ onMounted(fetchList)
       />
     </NCard>
 
+    <NCard title="질의 (RAG)" size="medium">
+      <NSpace vertical :size="12">
+        <NText depth="3">선택 문서 수: {{ selectedDocIds.length }}</NText>
+        <NInput
+          v-model:value="question"
+          type="textarea"
+          :rows="3"
+          placeholder="선택한 문서를 기준으로 질문을 입력하세요."
+        />
+        <NButton type="primary" :loading="asking" @click="askRag">질문하기</NButton>
+        <template v-if="ragAnswer">
+          <NText><b>답변</b></NText>
+          <NInput :value="ragAnswer" type="textarea" :rows="6" readonly />
+          <NText><b>근거(sources)</b></NText>
+          <NDataTable
+            :columns="[
+              { title: '문서', key: 'documentTitle', width: 180 },
+              { title: '청크', key: 'chunkIndex', width: 80 },
+              { title: '점수', key: 'score', width: 100 },
+              { title: '내용', key: 'content' },
+            ]"
+            :data="ragSources"
+            :single-line="false"
+          />
+        </template>
+      </NSpace>
+    </NCard>
+
     <NCard title="문서 상세" size="medium">
       <NText v-if="loadingDetail">불러오는 중...</NText>
       <template v-else-if="selected">
@@ -183,6 +271,8 @@ onMounted(fetchList)
           <NText><b>ID:</b> {{ selected.id }}</NText>
           <NText><b>제목:</b> {{ selected.title }}</NText>
           <NText><b>타입:</b> {{ selected.sourceType }}</NText>
+          <NText><b>인제스트:</b> {{ selected.ingestStatus }}</NText>
+          <NText v-if="selected.ingestError"><b>인제스트 에러:</b> {{ selected.ingestError }}</NText>
           <NText><b>생성일:</b> {{ selected.createdAt }}</NText>
           <NText depth="3">내용</NText>
           <NInput :value="selected.content" type="textarea" :rows="8" readonly />
