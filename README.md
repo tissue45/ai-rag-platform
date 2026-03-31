@@ -5,7 +5,8 @@
 ## 현재 진행 상태
 
 - 완료: `PR-00`, `PR-01`, `PR-01.1`, `PR-02`, `PR-03`, `PR-04`, `PR-05`
-- 다음: `PR-06` (청킹 + 임베딩 저장)
+- 배포 관련: `PR-09`, `PR-10` 일부 선행 진행(백엔드 Docker/ECR/ECS/RDS/ALB, 프론트 GitHub Pages)
+- 다음 핵심 개발: `PR-06` (청킹 + 임베딩 저장)
 
 ## 현재 구현된 기능
 
@@ -102,6 +103,42 @@ npm run dev -- --host
 - 워크플로 파일: `.github/workflows/deploy-pages.yml`
 - 트리거: `main` 브랜치 push 시 자동 배포
 - 예상 URL: `https://tissue45.github.io/ai-rag-platform/`
+- 빌드 시 API 베이스 URL 주입: `VITE_API_BASE_URL` (GitHub Actions Secret)
+- 시크릿 누락 방지를 위해 빌드 단계에서 `VITE_API_BASE_URL` 비어 있으면 실패하도록 검증 추가
 
 초기 1회는 GitHub 저장소 설정에서 `Settings > Pages > Source`를 `GitHub Actions`로 설정해야 합니다.
+
+## Docker / AWS 진행 상황
+
+### Docker
+
+- 백엔드 Dockerfile 작성 및 이미지 빌드/배포 흐름 구성
+- ECR 저장소(`ai-rag-backend`)로 이미지 push 완료
+- 컨테이너 실행 시 JVM 옵션 추가:
+  - `-Djava.net.preferIPv4Stack=true`
+  - 목적: 배포 환경에서 DB 연결 타임아웃 이슈 완화
+
+### AWS 인프라
+
+- RDS(PostgreSQL) 생성 및 백엔드 연결 구성 완료
+- ECS Fargate 클러스터/서비스로 백엔드 배포 완료
+- ALB + Target Group 연동 완료(백엔드 8080)
+- 헬스체크 경로/매처 조정으로 서비스 상태 안정화 진행
+- 보안 그룹 연동(ALB -> ECS 8080) 반영
+
+### 운영 반영된 수정
+
+- 백엔드 CORS/보안 설정 보완
+  - `OPTIONS` 요청 허용(프리플라이트 대응)
+- 프론트 라우터 배포 경로 보정
+  - `createWebHistory(import.meta.env.BASE_URL)` 적용
+- API 베이스 URL 정규화
+  - 환경변수에 `/api`가 들어와도 중복 경로(`/api/api/...`)가 되지 않도록 처리
+
+### 현재 남은 배포 작업
+
+- API HTTPS 적용(도메인 + ACM 퍼블릭 인증서 + ALB 443 리스너)
+- `VITE_API_BASE_URL`을 `https://api.<도메인>`으로 최종 전환
+- CORS 허용 출처에 GitHub Pages 도메인 최종 반영
+- 백엔드 이미지 재배포 후 최종 통합 테스트
 
