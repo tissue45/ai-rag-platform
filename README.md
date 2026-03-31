@@ -8,6 +8,14 @@
 - 배포 관련: `PR-09`, `PR-10` 일부 선행 진행(백엔드 Docker/ECR/ECS/RDS/ALB, 프론트 GitHub Pages)
 - 다음 핵심 개발: `PR-06` (청킹 + 임베딩 저장)
 
+## AI 모델/프로바이더 결정
+
+- 현재 프로젝트는 `OpenAI API` 기준으로 진행합니다.
+- MVP 기본 모델
+  - 임베딩: `text-embedding-3-small`
+  - 답변 생성: `gpt-4o-mini`
+- 추후 필요 시 Provider 추상화로 `Azure OpenAI` 전환 가능하게 유지합니다.
+
 ## 현재 구현된 기능
 
 ### 프론트엔드
