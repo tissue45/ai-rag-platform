@@ -28,6 +28,7 @@
   - 문서 생성(제목 + 텍스트)
   - 내 문서 목록 조회
   - 문서 상세 조회
+  - 문서 삭제
 - Naive UI 기반 기본 레이아웃(`AppShell`)
 
 ### 백엔드
@@ -43,6 +44,7 @@
   - `POST /api/documents` (생성)
   - `GET /api/documents` (내 문서 목록)
   - `GET /api/documents/{id}` (내 문서 상세)
+  - `DELETE /api/documents/{id}` (내 문서 삭제)
   - 사용자 소유 문서 격리(본인 문서만 조회 가능)
 
 ### DB/Flyway
