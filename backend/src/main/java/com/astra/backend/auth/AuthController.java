@@ -2,9 +2,11 @@ package com.astra.backend.auth;
 
 import com.astra.backend.user.UserEntity;
 import com.astra.backend.user.UserRepository;
+import com.astra.backend.user.UserRole;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,6 +32,33 @@ public class AuthController {
             @NotBlank @Email String email,
             @NotBlank String password
     ) {}
+
+    public record RegisterRequest(
+            @NotBlank @Email String email,
+            @NotBlank @Size(min = 8, max = 128) String password
+    ) {}
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
+        String email = req.email().trim();
+        if (users.existsByEmail(email)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                    Map.of("code", "EMAIL_TAKEN", "message", "이미 사용 중인 이메일입니다.")
+            );
+        }
+
+        UserEntity u = new UserEntity();
+        u.setEmail(email);
+        u.setPasswordHash(passwordEncoder.encode(req.password()));
+        u.setRole(UserRole.USER);
+        users.save(u);
+
+        String token = jwtService.createToken(u.getId(), u.getEmail(), u.getRole().name());
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "accessToken", token,
+                "tokenType", "Bearer"
+        ));
+    }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {

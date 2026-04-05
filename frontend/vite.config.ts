@@ -7,6 +7,9 @@ export default defineConfig(({ command }) => ({
   // GitHub Pages repo site path
   base: command === 'build' ? '/ai-rag-platform/' : '/',
   server: {
+    // 5173은 다른 Vite 프로젝트와 겹치기 쉬움 — 이 저장소 전용 포트
+    port: 5188,
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
