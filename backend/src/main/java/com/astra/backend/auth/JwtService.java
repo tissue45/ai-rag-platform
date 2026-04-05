@@ -24,7 +24,15 @@ public class JwtService {
             @Value("${app.jwt.issuer:ai-rag-platform}") String issuer,
             @Value("${app.jwt.ttl-seconds:86400}") long ttlSeconds
     ) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("app.jwt.secret must not be empty (set APP_JWT_SECRET in prod)");
+        }
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException(
+                    "app.jwt.secret must be at least 32 UTF-8 bytes for HS256; got " + keyBytes.length);
+        }
+        this.key = Keys.hmacShaKeyFor(keyBytes);
         this.issuer = issuer;
         this.ttlSeconds = ttlSeconds;
     }

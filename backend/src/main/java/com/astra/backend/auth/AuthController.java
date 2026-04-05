@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -39,6 +40,7 @@ public class AuthController {
     ) {}
 
     @PostMapping("/register")
+    @Transactional
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
         String email = req.email().trim();
         if (users.existsByEmail(email)) {

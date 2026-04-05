@@ -4,6 +4,7 @@ import com.astra.backend.document.DocumentNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -46,6 +47,31 @@ public class GlobalExceptionHandler {
                 null
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest req) {
+        String detail = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+        log.warn("Data integrity violation {} : {}", req.getRequestURI(), detail);
+        String m = detail != null ? detail.toLowerCase() : "";
+        boolean likelyDuplicateEmail = m.contains("duplicate key")
+                || m.contains("unique constraint")
+                || m.contains("users_email")
+                || m.contains("idx_users_email");
+        if (likelyDuplicateEmail) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiError.of(
+                    "EMAIL_TAKEN",
+                    "이미 사용 중인 이메일입니다.",
+                    req.getRequestURI(),
+                    null
+            ));
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiError.of(
+                "DATA_INTEGRITY",
+                "데이터 저장 중 제약 조건 오류가 발생했습니다.",
+                req.getRequestURI(),
+                null
+        ));
     }
 
     @ExceptionHandler(DocumentNotFoundException.class)
