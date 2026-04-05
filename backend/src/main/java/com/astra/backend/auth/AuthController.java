@@ -53,9 +53,13 @@ public class AuthController {
         u.setEmail(email);
         u.setPasswordHash(passwordEncoder.encode(req.password()));
         u.setRole(UserRole.USER);
-        users.save(u);
+        UserEntity saved = users.save(u);
+        users.flush();
+        if (saved.getId() == null) {
+            throw new IllegalStateException("User id not assigned after persist");
+        }
 
-        String token = jwtService.createToken(u.getId(), u.getEmail(), u.getRole().name());
+        String token = jwtService.createToken(saved.getId(), saved.getEmail(), saved.getRole().name());
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "accessToken", token,
                 "tokenType", "Bearer"

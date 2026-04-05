@@ -4,6 +4,7 @@ import com.astra.backend.document.DocumentNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -69,6 +70,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiError.of(
                 "DATA_INTEGRITY",
                 "데이터 저장 중 제약 조건 오류가 발생했습니다.",
+                req.getRequestURI(),
+                null
+        ));
+    }
+
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<ApiError> handleDataAccess(DataAccessException ex, HttpServletRequest req) {
+        Throwable root = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause() : ex;
+        log.error("Database access error {} : {}", req.getRequestURI(), root.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiError.of(
+                "DATABASE_ERROR",
+                "데이터베이스 오류가 발생했습니다.",
                 req.getRequestURI(),
                 null
         ));
