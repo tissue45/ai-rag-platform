@@ -18,8 +18,8 @@ const notify = useNotify()
 const loading = ref(false)
 const error = ref<string | null>(null)
 const form = reactive({
-  email: 'admin@local.dev',
-  password: 'admin1234',
+  email: '',
+  password: '',
 })
 
 async function submit() {
