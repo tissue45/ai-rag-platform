@@ -4,9 +4,8 @@
 
 ## 현재 진행 상태
 
-- 완료: `PR-00`, `PR-01`, `PR-01.1`, `PR-02`, `PR-03`, `PR-04`, `PR-05`, `PR-06`, `PR-07`, `PR-08`
-- 배포 관련: `PR-09`, `PR-10` 일부 선행 진행(백엔드 Docker/ECR/ECS/RDS/ALB, 프론트 GitHub Pages)
-- 다음 핵심 개발: `PR-09` (배포 포장)
+- **완료**: `PR-00` ~ `PR-10` (로컬 기능 + Dockerfile/배포 포장 + AWS 1차 운영 반영까지)
+- **다음**: `PR-11` (비동기 인제스트: SQS + 워커) — 상세는 `진행순서.md`
 
 ## AI 모델/프로바이더 결정
 
@@ -52,6 +51,7 @@ $env:APP_OPENAI_EMBEDDING_MODEL="text-embedding-3-small"
 - 공통 에러 포맷(`VALIDATION_ERROR`, `MALFORMED_JSON` 등)
 - CORS(dev에서 `http://localhost:5173` 허용)
 - 인증/인가 1차
+  - 회원가입 API: `POST /api/auth/register`
   - 로그인 API: `POST /api/auth/login`
   - JWT 발급 및 필터 검증
   - 보호 API 접근 제어(`/api/auth/**`, `/api/health`, `/actuator/health` 제외 인증 필요)
@@ -108,11 +108,14 @@ npm run dev -- --host
 
 ## 앞으로 구현할 항목 (TODO)
 
-아래는 `진행순서.md` 기준의 남은 PR입니다.
+`진행순서.md` 기준 **남은 PR**은 아래입니다.
 
-- `PR-09`: 배포 포장(Dockerfile)
-- `PR-10`: AWS 배포(ECS Fargate + RDS + S3)
 - `PR-11`: 비동기 인제스트(SQS + 워커)
+
+선택/문서화(운영 마무리):
+
+- 운영 체크리스트(장애 대응·롤백) 정리
+- (선택) S3 버킷·CloudWatch 알람 등 PR-10 확장 항목
 
 ## 참고
 
@@ -130,35 +133,36 @@ npm run dev -- --host
 
 ## Docker / AWS 진행 상황
 
-### Docker
+### Docker ✅
 
 - 백엔드 Dockerfile 작성 및 이미지 빌드/배포 흐름 구성
-- ECR 저장소(`ai-rag-backend`)로 이미지 push 완료
+- ECR 저장소(`ai-rag-backend`)로 이미지 push
 - 컨테이너 실행 시 JVM 옵션 추가:
   - `-Djava.net.preferIPv4Stack=true`
   - 목적: 배포 환경에서 DB 연결 타임아웃 이슈 완화
 
-### AWS 인프라
+### AWS 인프라 ✅
 
-- RDS(PostgreSQL) 생성 및 백엔드 연결 구성 완료
-- ECS Fargate 클러스터/서비스로 백엔드 배포 완료
-- ALB + Target Group 연동 완료(백엔드 8080)
-- 헬스체크 경로/매처 조정으로 서비스 상태 안정화 진행
-- 보안 그룹 연동(ALB -> ECS 8080) 반영
+- RDS(PostgreSQL) 생성 및 백엔드 연결 구성
+- ECS Fargate 클러스터/서비스로 백엔드 배포
+- ALB + Target Group 연동(백엔드 8080, HTTPS 리스너)
+- Route 53으로 API 도메인(`api.airag.site` 등) 연결
+- Secrets Manager: JWT·DB 비밀번호를 ECS 태스크 `secrets`로 주입(태스크 정의 예: `ai-rag-backend:3`)
+- CloudWatch 로그(`/ecs/ai-rag-backend`)
 
-### 운영 반영된 수정
+### 운영 반영된 수정 ✅
 
 - 백엔드 CORS/보안 설정 보완
   - `OPTIONS` 요청 허용(프리플라이트 대응)
+  - GitHub Pages 출처 허용
 - 프론트 라우터 배포 경로 보정
   - `createWebHistory(import.meta.env.BASE_URL)` 적용
 - API 베이스 URL 정규화
   - 환경변수에 `/api`가 들어와도 중복 경로(`/api/api/...`)가 되지 않도록 처리
+- 로그인 폼 기본 계정값 제거(의도치 않은 admin 로그인 방지)
 
-### 현재 남은 배포 작업
+### 남은 선택 작업
 
-- API HTTPS 적용(도메인 + ACM 퍼블릭 인증서 + ALB 443 리스너)
-- `VITE_API_BASE_URL`을 `https://api.<도메인>`으로 최종 전환
-- CORS 허용 출처에 GitHub Pages 도메인 최종 반영
-- 백엔드 이미지 재배포 후 최종 통합 테스트
+- 운영 체크리스트(장애 대응·롤백) 문서화
+- (선택) S3, CloudWatch 알람, LLM 키도 Secrets Manager로 이관 등
 
