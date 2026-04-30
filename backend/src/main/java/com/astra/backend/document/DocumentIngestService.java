@@ -36,7 +36,17 @@ public class DocumentIngestService {
         DocumentEntity doc = documents.findById(documentId)
                 .orElseThrow(() -> new IllegalStateException("인제스트 대상 문서를 찾을 수 없습니다."));
 
+        if (doc.getIngestStatus() == DocumentIngestStatus.COMPLETED) {
+            return;
+        }
+
         try {
+            doc.setIngestStatus(DocumentIngestStatus.PROCESSING);
+            doc.setIngestError(null);
+            documents.save(doc);
+
+            chunks.deleteByDocumentId(documentId);
+
             List<String> pieces = textChunker.split(doc.getContent());
             List<DocumentChunkEntity> rows = new ArrayList<>(pieces.size());
             for (int i = 0; i < pieces.size(); i++) {

@@ -18,12 +18,12 @@ public class DocumentController {
 
     private final DocumentRepository documents;
     private final UserRepository users;
-    private final DocumentIngestService ingestService;
+    private final DocumentIngestPublisher ingestPublisher;
 
-    public DocumentController(DocumentRepository documents, UserRepository users, DocumentIngestService ingestService) {
+    public DocumentController(DocumentRepository documents, UserRepository users, DocumentIngestPublisher ingestPublisher) {
         this.documents = documents;
         this.users = users;
-        this.ingestService = ingestService;
+        this.ingestPublisher = ingestPublisher;
     }
 
     public record CreateDocumentRequest(
@@ -64,12 +64,7 @@ public class DocumentController {
         doc.setSourceType(DocumentSourceType.TEXT);
         doc.setIngestStatus(DocumentIngestStatus.PENDING);
         DocumentEntity saved = documents.save(doc);
-        try {
-            ingestService.ingest(saved.getId());
-            saved = documents.findById(saved.getId()).orElse(saved);
-        } catch (Exception ignored) {
-            saved = documents.findById(saved.getId()).orElse(saved);
-        }
+        ingestPublisher.publish(saved.getId());
 
         return toDetail(saved);
     }
