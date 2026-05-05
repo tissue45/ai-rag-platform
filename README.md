@@ -5,7 +5,10 @@
 ## 현재 진행 상태
 
 - **완료**: `PR-00` ~ `PR-10` (로컬 기능 + Dockerfile/배포 포장 + AWS 1차 운영 반영까지)
-- **다음**: `PR-11` (비동기 인제스트: SQS + 워커) — 상세는 `진행순서.md`
+- **진행 중**: `PR-11` (비동기 인제스트: SQS + 워커) — 상세는 `진행순서.md`
+- **LLM(OpenAI) 연동 상태**
+  - 로컬: ✅ 성공
+  - AWS: ⚠️ 미완료 (`/api/rag/ask` 호출 시 OpenAI 임베딩 401 이슈 확인됨)
 
 ## AI 모델/프로바이더 결정
 
@@ -27,6 +30,8 @@ $env:APP_OPENAI_EMBEDDING_MODEL="text-embedding-3-small"
 ```
 
 - 설정 후 `backend`를 재실행하면 `POST /api/rag/ask`가 OpenAI 호출로 동작합니다.
+- 운영(AWS)에서는 ECS 환경변수에 키 원문을 직접 넣지 않고, `APP_OPENAI_API_KEY`를
+  Secrets Manager `valueFrom` ARN으로 주입해야 합니다.
 
 ## 현재 구현된 기능
 
@@ -149,6 +154,12 @@ npm run dev -- --host
 - Route 53으로 API 도메인(`api.airag.site` 등) 연결
 - Secrets Manager: JWT·DB 비밀번호를 ECS 태스크 `secrets`로 주입(태스크 정의 예: `ai-rag-backend:3`)
 - CloudWatch 로그(`/ecs/ai-rag-backend`)
+
+### LLM(OpenAI) 운영 연동 상태 ⚠️
+
+- 로컬 환경에서는 OpenAI 연동 동작 확인 완료
+- AWS 운영에서는 `/api/rag/ask` 호출 시 OpenAI 임베딩 API(`POST /v1/embeddings`)에서 `401 Unauthorized`가 발생하여 미완료 상태
+- 즉, 현재 운영에서 보이는 `500 INTERNAL_ERROR`의 근본 원인은 서버 내부 OpenAI 인증 실패(401) 전파 이슈
 
 ### 운영 반영된 수정 ✅
 
