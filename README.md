@@ -8,7 +8,7 @@
 - **진행 중**: `PR-11` (비동기 인제스트: SQS + 워커) — 상세는 `진행순서.md`
 - **LLM(OpenAI) 연동 상태**
   - 로컬: ✅ 성공
-  - AWS: ⚠️ 미완료 (`/api/rag/ask` 호출 시 OpenAI 임베딩 401 이슈 확인됨)
+  - AWS: ✅ 완료
 
 ## AI 모델/프로바이더 결정
 
@@ -155,11 +155,11 @@ npm run dev -- --host
 - Secrets Manager: JWT·DB 비밀번호를 ECS 태스크 `secrets`로 주입(태스크 정의 예: `ai-rag-backend:3`)
 - CloudWatch 로그(`/ecs/ai-rag-backend`)
 
-### LLM(OpenAI) 운영 연동 상태 ⚠️
+### LLM(OpenAI) 운영 연동 상태 ✅
 
 - 로컬 환경에서는 OpenAI 연동 동작 확인 완료
-- AWS 운영에서는 `/api/rag/ask` 호출 시 OpenAI 임베딩 API(`POST /v1/embeddings`)에서 `401 Unauthorized`가 발생하여 미완료 상태
-- 즉, 현재 운영에서 보이는 `500 INTERNAL_ERROR`의 근본 원인은 서버 내부 OpenAI 인증 실패(401) 전파 이슈
+- AWS 운영에서도 `/api/rag/ask` 호출 시 OpenAI 임베딩/챗 API 연동 정상 동작 확인
+- Secrets Manager JSON 키 참조 방식(`valueFrom ...:<json-key>::`)을 적용해 인증 이슈 해결
 
 ### 운영 반영된 수정 ✅
 
