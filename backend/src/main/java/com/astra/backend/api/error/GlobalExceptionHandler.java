@@ -12,6 +12,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -96,6 +97,22 @@ public class GlobalExceptionHandler {
                 null
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleResponseStatus(ResponseStatusException ex, HttpServletRequest req) {
+        HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
+        HttpStatus resolved = status != null ? status : HttpStatus.INTERNAL_SERVER_ERROR;
+        String reason = ex.getReason() != null && !ex.getReason().isBlank()
+                ? ex.getReason()
+                : "요청 처리 중 오류가 발생했습니다.";
+        ApiError body = ApiError.of(
+                resolved.name(),
+                reason,
+                req.getRequestURI(),
+                null
+        );
+        return ResponseEntity.status(resolved).body(body);
     }
 
     @ExceptionHandler(Exception.class)

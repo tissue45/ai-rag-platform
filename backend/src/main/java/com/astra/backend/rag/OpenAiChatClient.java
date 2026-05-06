@@ -6,8 +6,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+
+import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 
 @Component
 public class OpenAiChatClient {
@@ -78,12 +81,17 @@ public class OpenAiChatClient {
                 %s
                 """.formatted(question, sourceContext);
 
-        ChatResponse response = webClient.post()
-                .uri("/chat/completions")
-                .bodyValue(new ChatRequest(chatModel, List.of(new Message("user", prompt)), 0.2))
-                .retrieve()
-                .bodyToMono(ChatResponse.class)
-                .block();
+        ChatResponse response;
+        try {
+            response = webClient.post()
+                    .uri("/chat/completions")
+                    .bodyValue(new ChatRequest(chatModel, List.of(new Message("user", prompt)), 0.2))
+                    .retrieve()
+                    .bodyToMono(ChatResponse.class)
+                    .block();
+        } catch (Exception ex) {
+            throw new ResponseStatusException(BAD_GATEWAY, "LLM 응답 생성에 실패했습니다.", ex);
+        }
 
         if (response == null || response.choices() == null || response.choices().isEmpty()) {
             throw new IllegalStateException("챗 응답이 비어 있습니다.");
