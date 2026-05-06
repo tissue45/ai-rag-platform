@@ -8,8 +8,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @RestController
 @RequestMapping("/api/rag")
@@ -61,7 +64,7 @@ public class RagController {
 
     private String currentEmail(Authentication auth) {
         if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
-            throw new IllegalStateException("인증 정보가 없습니다.");
+            throw new ResponseStatusException(UNAUTHORIZED, "인증 정보가 없습니다.");
         }
         return auth.getName();
     }

@@ -6,10 +6,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.zip.CRC32;
+
+import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 
 @Component
 public class OpenAiEmbeddingClient {
@@ -50,15 +53,20 @@ public class OpenAiEmbeddingClient {
             return fallbackEmbedding(input);
         }
 
-        EmbeddingResponse response = webClient.post()
-                .uri("/embeddings")
-                .bodyValue(new EmbeddingRequest(embeddingModel, input))
-                .retrieve()
-                .bodyToMono(EmbeddingResponse.class)
-                .block();
+        EmbeddingResponse response;
+        try {
+            response = webClient.post()
+                    .uri("/embeddings")
+                    .bodyValue(new EmbeddingRequest(embeddingModel, input))
+                    .retrieve()
+                    .bodyToMono(EmbeddingResponse.class)
+                    .block();
+        } catch (Exception ex) {
+            throw new ResponseStatusException(BAD_GATEWAY, "임베딩 생성에 실패했습니다.", ex);
+        }
 
         if (response == null || response.data() == null || response.data().isEmpty()) {
-            throw new IllegalStateException("임베딩 응답이 비어 있습니다.");
+            throw new ResponseStatusException(BAD_GATEWAY, "임베딩 응답이 비어 있습니다.");
         }
         return response.data().getFirst().embedding();
     }
